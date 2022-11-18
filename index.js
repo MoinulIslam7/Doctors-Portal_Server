@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0tydy0p.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -155,6 +155,29 @@ async function run() {
       const query = {};
       const users = await usersCollection.find(query).toArray();
       res.send(users)
+    })
+
+    //update a use info and Make a User admin 
+    app.put('/users/admin/:id', verifyJWT, async (req, res) =>{
+      // For only give access to see all users
+      const decodedEmail = req.decoded.email;
+      const query = {email: decodedEmail};
+      const user = await usersCollection.findOne(query);
+      if(user?.role !== 'admin'){
+        return res.status(403).send({message: "forbidden access"})
+      }
+
+      // By clicking make admin button update user to admin
+      const id = req.params.id;
+      const filter = {_id: ObjectId(id)}
+      const options = {upsert: true};
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await usersCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
     })
 
   }
