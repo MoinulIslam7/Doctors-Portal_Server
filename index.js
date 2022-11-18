@@ -19,16 +19,16 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 // verify jwt 
-function verifyJWT(req, res, next){
+function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  if(!authHeader){
+  if (!authHeader) {
     return res.status(401).send('Unauthorized Access');
   }
 
   const token = authHeader.split(' ')[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded){
-    if(err){
-      return res.status(403).send({message: 'forbidden access'})
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: 'forbidden access' })
     }
     req.decoded = decoded;
     next();
@@ -104,8 +104,8 @@ async function run() {
     app.get('/bookings', verifyJWT, async (req, res) => {
       const email = req.query.email;
       const decodeEmail = req.decoded.email;
-      if(email !== decodeEmail){
-        return res.status(403).send({message: 'forbidden access'});
+      if (email !== decodeEmail) {
+        return res.status(403).send({ message: 'forbidden access' });
       }
 
       const query = { email: email };
@@ -138,39 +138,46 @@ async function run() {
 
 
     // jwt
-    app.get('/jwt', async (req, res) =>{
+    app.get('/jwt', async (req, res) => {
       const email = req.query.email;
-      const query = {email: email};
+      const query = { email: email };
       const user = await usersCollection.findOne(query);
-      if(user){
-        const token = jwt.sign({email}, process.env.ACCESS_TOKEN, {expiresIn: '7d'})
-        return res.send({accessToken: token})
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
+        return res.send({ accessToken: token })
       }
-      res.status(403).send({accessToken: ''})
-      
+      res.status(403).send({ accessToken: '' })
+
     })
 
     // get Users
-    app.get('/users', async (req, res) =>{
+    app.get('/users', async (req, res) => {
       const query = {};
       const users = await usersCollection.find(query).toArray();
       res.send(users)
     })
+    // check a user is a admin or not
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'admin' });
+  })
 
     //update a use info and Make a User admin 
-    app.put('/users/admin/:id', verifyJWT, async (req, res) =>{
+    app.put('/users/admin/:id', verifyJWT, async (req, res) => {
       // For only give access to see all users
       const decodedEmail = req.decoded.email;
-      const query = {email: decodedEmail};
+      const query = { email: decodedEmail };
       const user = await usersCollection.findOne(query);
-      if(user?.role !== 'admin'){
-        return res.status(403).send({message: "forbidden access"})
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ message: "forbidden access" })
       }
 
       // By clicking make admin button update user to admin
       const id = req.params.id;
-      const filter = {_id: ObjectId(id)}
-      const options = {upsert: true};
+      const filter = { _id: ObjectId(id) }
+      const options = { upsert: true };
       const updateDoc = {
         $set: {
           role: 'admin'
