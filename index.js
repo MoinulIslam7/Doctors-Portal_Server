@@ -187,6 +187,14 @@ async function run() {
       res.send(result);
     })
 
+
+    // load appointment specialty for add a doctor in specific specialty
+    app.get('/appointmentSpecialty', async (req, res) =>{
+      const query = {};
+      const result = await appointmentOptionCollection.find(query).project({name: 1}).toArray();
+      res.send(result);
+    })
+
   }
   finally {
 
